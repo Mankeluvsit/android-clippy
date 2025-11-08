@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Cloud Clipboard</string>
+    <string name="notification_title">Clipboard Sync Active</string>
+    <string name="notification_content">Monitoring clipboard and syncing to Google Drive</string>
+    <string name="notification_channel_name">Clipboard Monitor</string>
+    <string name="notification_channel_desc">Shows when clipboard monitoring is active</string>
+    <string name="sign_in">Sign in with Google</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="start_monitoring">Start Monitoring</string>
+    <string name="stop_monitoring">Stop Monitoring</string>
+    <string name="clipboard_history">Clipboard History</string>
+    <string name="status_monitoring">Monitoring Active</string>
+    <string name="status_stopped">Monitoring Stopped</string>
+    <string name="copy_to_clipboard">Copy</string>
+    <string name="delete_item">Delete</string>
+</resources>
