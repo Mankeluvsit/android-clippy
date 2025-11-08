@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Cloud Clipboard</string>
+    <string name="notification_channel_name">Cloud Clipboard Sync</string>
+    <string name="notification_channel_description">Shows clipboard sync status.</string>
+    <string name="notification_foreground_title">Cloud Clipboard running</string>
+    <string name="notification_foreground_text">Listening for clipboard updates.</string>
+</resources>
