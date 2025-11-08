@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Clipboard Drive Sync</string>
+    <string name="clipboard_service_channel_name">Clipboard Sync</string>
+    <string name="clipboard_service_channel_description">Keeps clipboard history in sync with Google Drive.</string>
+    <string name="clipboard_service_notification_title">Clipboard sync active</string>
+    <string name="clipboard_service_notification_text">New clipboard items will sync to Google Drive.</string>
+</resources>

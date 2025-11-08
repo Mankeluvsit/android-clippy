@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clipboard Drive Viewer</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: #0d1117;
+            color: #e6edf3;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 32px;
+        }
+
+        main {
+            width: min(960px, 100%);
+            background: rgba(13, 17, 23, 0.85);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+        }
+
+        header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        button {
+            appearance: none;
+            border: none;
+            border-radius: 999px;
+            padding: 10px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+        }
+
+        button.primary {
+            background: linear-gradient(135deg, #2962ff, #71a3ff);
+            color: #fff;
+        }
+
+        button.secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: inherit;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+            transform: none;
+            box-shadow: none;
+        }
+
+        button:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(41, 98, 255, 0.35);
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            font-size: 0.9rem;
+        }
+
+        #status {
+            margin-top: 16px;
+            font-size: 0.95rem;
+            color: #9ba4b4;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 24px;
+        }
+
+        th, td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            vertical-align: top;
+        }
+
+        th {
+            text-align: left;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        td pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: inherit;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <div>
+            <h1 style="margin: 0 0 4px">Clipboard Drive Viewer</h1>
+            <p style="margin: 0" id="user-label">Not signed in</p>
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <button id="signin-btn" class="primary">Sign in with Google</button>
+            <button id="refresh-btn" class="secondary" disabled>Refresh</button>
+            <button id="signout-btn" class="secondary" disabled>Sign out</button>
+        </div>
+    </header>
+
+    <section id="clipboard-section" class="hidden">
+        <div class="chip" id="last-sync">Last sync: —</div>
+        <table>
+            <thead>
+            <tr>
+                <th style="width: 55%">Content</th>
+                <th>Created</th>
+                <th>Device</th>
+                <th>Sync</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody id="entries"></tbody>
+        </table>
+    </section>
+
+    <p id="status"></p>
+</main>
+
+<script type="module">
+    const CLIENT_ID = "REPLACE_WITH_WEB_CLIENT_ID";
+    const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+    const FILE_NAME = "clipboard.json";
+
+    let accessToken = null;
+    let tokenClient = null;
+
+    const statusEl = document.getElementById("status");
+    const entriesTbody = document.getElementById("entries");
+    const signinBtn = document.getElementById("signin-btn");
+    const refreshBtn = document.getElementById("refresh-btn");
+    const signoutBtn = document.getElementById("signout-btn");
+    const userLabel = document.getElementById("user-label");
+    const clipboardSection = document.getElementById("clipboard-section");
+    const lastSyncEl = document.getElementById("last-sync");
+
+    signinBtn.addEventListener("click", () => {
+        ensureTokenClient();
+        tokenClient.requestAccessToken({ prompt: "consent" });
+    });
+
+    refreshBtn.addEventListener("click", () => {
+        if (!accessToken) {
+            statusEl.textContent = "Sign in first to fetch clipboard entries.";
+            return;
+        }
+        loadClipboard();
+    });
+
+    signoutBtn.addEventListener("click", () => {
+        if (!accessToken) return;
+        google.accounts.oauth2.revoke(accessToken, () => {
+            accessToken = null;
+            updateSignedOutState();
+        });
+    });
+
+    function ensureTokenClient() {
+        if (tokenClient) return;
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: DRIVE_SCOPE,
+            callback: (response) => {
+                if (response.error) {
+                    statusEl.textContent = `Token error: ${response.error}`;
+                    return;
+                }
+                accessToken = response.access_token;
+                updateSignedInState();
+                loadClipboard();
+            }
+        });
+    }
+
+    async function loadClipboard() {
+        statusEl.textContent = "Loading clipboard from Drive…";
+        entriesTbody.innerHTML = "";
+
+        try {
+            const fileId = await ensureClipboardFile();
+            if (!fileId) {
+                statusEl.textContent = "No clipboard data found yet. Copy something on Android to get started.";
+                clipboardSection.classList.add("hidden");
+                return;
+            }
+
+            const envelope = await downloadClipboard(fileId);
+            renderEntries(envelope);
+            clipboardSection.classList.remove("hidden");
+            statusEl.textContent = `Loaded ${envelope.entries.length} entries.`;
+        } catch (error) {
+            console.error(error);
+            if (error.status === 401) {
+                statusEl.textContent = "Authorization expired. Please sign in again.";
+                accessToken = null;
+                updateSignedOutState();
+            } else {
+                statusEl.textContent = `Failed to load clipboard: ${error.message || error}`;
+            }
+        }
+    }
+
+    async function ensureClipboardFile() {
+        const query = encodeURIComponent(`name='${FILE_NAME}' and 'appDataFolder' in parents`);
+        const url = `https://www.googleapis.com/drive/v3/files?q=${query}&spaces=appDataFolder&fields=files(id,name,modifiedTime)&pageSize=1`;
+        const response = await driveFetch(url);
+        if (!response.ok) {
+            const error = await response.json();
+            throw { status: response.status, message: error.error?.message };
+        }
+        const data = await response.json();
+        if (!data.files || data.files.length === 0) {
+            return null;
+        }
+        lastSyncEl.textContent = `Last sync: ${new Date(data.files[0].modifiedTime).toLocaleString()}`;
+        return data.files[0].id;
+    }
+
+    async function downloadClipboard(fileId) {
+        const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+        const response = await driveFetch(url);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw { status: response.status, message: errorText };
+        }
+        return await response.json();
+    }
+
+    function renderEntries(envelope) {
+        entriesTbody.innerHTML = "";
+        envelope.entries.forEach((entry) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td><pre>${escapeHtml(entry.content)}</pre></td>
+                <td>${formatDate(entry.createdAt)}</td>
+                <td>${entry.device ?? "—"}</td>
+                <td>${entry.pendingSync ? "Pending" : "Synced"}</td>
+                <td class="actions"></td>
+            `;
+            const actionsCell = row.querySelector(".actions");
+
+            const copyBtn = document.createElement("button");
+            copyBtn.className = "secondary";
+            copyBtn.textContent = "Copy";
+            copyBtn.addEventListener("click", () => {
+                navigator.clipboard.writeText(entry.content ?? "").then(() => {
+                    statusEl.textContent = "Copied to clipboard";
+                });
+            });
+
+            actionsCell.appendChild(copyBtn);
+            entriesTbody.appendChild(row);
+        });
+    }
+
+    function updateSignedInState() {
+        signinBtn.disabled = true;
+        refreshBtn.disabled = false;
+        signoutBtn.disabled = false;
+        userLabel.textContent = "Authenticated";
+    }
+
+    function updateSignedOutState() {
+        signinBtn.disabled = false;
+        refreshBtn.disabled = true;
+        signoutBtn.disabled = true;
+        userLabel.textContent = "Not signed in";
+        clipboardSection.classList.add("hidden");
+        statusEl.textContent = "Signed out.";
+    }
+
+    function formatDate(input) {
+        if (!input) return "—";
+        try {
+            return new Date(input).toLocaleString();
+        } catch {
+            return input;
+        }
+    }
+
+    function escapeHtml(str = "") {
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function driveFetch(url, options = {}) {
+        if (!accessToken) {
+            throw new Error("Missing access token");
+        }
+        const headers = new Headers(options.headers || {});
+        headers.set("Authorization", `Bearer ${accessToken}`);
+        headers.set("Accept", "application/json");
+
+        return fetch(url, {
+            ...options,
+            headers
+        });
+    }
+
+    updateSignedOutState();
+</script>
+</body>
+</html>
