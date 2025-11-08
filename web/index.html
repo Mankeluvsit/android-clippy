@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Clipboard Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>☁️ Cloud Clipboard</h1>
+            <p class="subtitle">View your synced clipboard across devices</p>
+        </header>
+
+        <div class="auth-section" id="authSection">
+            <button id="signInButton" class="btn btn-primary">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19.6 10.23c0-.82-.1-1.42-.25-2.05H10v3.72h5.5c-.15.96-.74 2.31-2.04 3.22v2.45h3.16c1.89-1.73 2.98-4.3 2.98-7.34z" fill="#4285F4"/>
+                    <path d="M10 20c2.7 0 4.96-.89 6.62-2.42l-3.15-2.45c-.86.58-1.96.92-3.47.92-2.65 0-4.92-1.8-5.73-4.22H1.08v2.52C2.7 17.03 6.09 20 10 20z" fill="#34A853"/>
+                    <path d="M4.27 11.83c-.2-.58-.31-1.19-.31-1.83s.11-1.25.31-1.83V5.65H1.08C.39 6.99 0 8.45 0 10s.39 3.01 1.08 4.35l3.19-2.52z" fill="#FBBC05"/>
+                    <path d="M10 3.98c1.5 0 2.85.52 3.91 1.53l2.93-2.93C14.96.89 12.7 0 10 0 6.09 0 2.7 2.97 1.08 7.35l3.19 2.52c.81-2.42 3.08-4.22 5.73-4.22z" fill="#EA4335"/>
+                </svg>
+                Sign in with Google
+            </button>
+            <div id="userInfo" class="user-info" style="display: none;">
+                <img id="userPhoto" class="user-photo" alt="User photo">
+                <div class="user-details">
+                    <div id="userName" class="user-name"></div>
+                    <button id="signOutButton" class="btn btn-secondary">Sign Out</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls" id="controls" style="display: none;">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search clipboard..." class="search-input">
+            </div>
+            <div class="stats">
+                <span id="itemCount" class="stat-badge">0 items</span>
+                <button id="refreshButton" class="btn btn-small">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading clipboard items...</p>
+        </div>
+
+        <div id="clipboardList" class="clipboard-list"></div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            <h3>No clipboard items yet</h3>
+            <p>Copy something on your Android device to see it here!</p>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
