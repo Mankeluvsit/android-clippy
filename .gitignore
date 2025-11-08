@@ -1,0 +1,34 @@
+# Android
+android/.gradle/
+android/.idea/
+android/local.properties
+android/build/
+android/app/build/
+android/captures/
+android/.externalNativeBuild
+android/.cxx
+*.apk
+*.ap_
+*.dex
+*.class
+.DS_Store
+
+# Google Services
+android/app/google-services.json
+
+# Web
+web/config.js
+node_modules/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
